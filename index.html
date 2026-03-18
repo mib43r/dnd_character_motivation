@@ -1,1 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&D Character Archetype Logic Tester</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --accent-2: #38bdf8;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --border: #334155;
+    }
 
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #0b1020 0%, #111827 100%);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1, h2, h3, h4 {
+      margin-top: 0;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .panel {
+      background: rgba(17, 24, 39, 0.96);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.25);
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button, .file-label {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover, .file-label:hover {
+      border-color: var(--accent-2);
+    }
+
+    button.primary {
+      background: #14532d;
+      border-color: #166534;
+    }
+
+    button.secondary {
+      background: #0c4a6e;
+      border-color: #075985;
+    }
+
+    button.warn {
+      background: #78350f;
+      border-color: #92400e;
+    }
+
+    button.danger {
+      background: #7f1d1d;
+      border-color: #991b1b;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 1000px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .question-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+      background: rgba(31, 41, 55, 0.45);
+    }
+
+    .question-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .question-text {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 800px) {
+      .options-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .option-btn {
+      text-align: left;
+      width: 100%;
+      min-height: 70px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 12px;
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.08s ease, border-color 0.12s ease, background 0.12s ease;
+    }
+
+    .option-btn:hover {
+      border-color: var(--accent-2);
+      transform: translateY(-1px);
+    }
+
+    .option-btn.selected {
+      border-color: var(--accent);
+      background: rgba(34, 197, 94, 0.12);
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.25) inset;
+    }
+
+    .option-title {
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .option-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .sticky-panel {
+      position: sticky;
+      top: 16px;
+    }
+
+    .progress {
+      height: 14px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 10px 0 14px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-2), var(--accent));
+      width: 0%;
+    }
+
+    .stats-list, .score-list, .result-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .stat-row, .score-row, .result-row {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.65);
+    }
+
+    .score-header, .result-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .mini-bar {
+      height: 10px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .mini-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #60a5fa, #22c55e);
+      width: 0%;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      margin: 2px 4px 2px 0;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 5px 8px;
+      border-radius: 8px;
+      background: #172033;
+      border: 1px solid #30415f;
+      color: #dbeafe;
+      font-size: 12px;
+      margin: 4px 6px 0 0;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      background: #08101d;
+      color: #d1fae5;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .small {
+      font-size: 12px;
+    }
+
+    .section-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 16px 0;
+    }
+
+    .stage-tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .stage-tab {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #101827;
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .stage-tab.active {
+      border-color: var(--accent-2);
+      background: rgba(56, 189, 248, 0.12);
+    }
+
+    .highlight {
+      color: #86efac;
+      font-weight: 700;
+    }
+
+    .danger-text {
+      color: #fca5a5;
+    }
+
+    .good-text {
+      color: #86efac;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1>D&D Character Archetype Logic Tester</h1>
+        <div class="muted">Standalone local HTML prototype using jQuery, embedded JSON, optional JSON file import, evaluation, and export.</div>
+      </div>
+      <div class="controls">
+        <label class="file-label" for="questionsFile">Load questions.json</label>
+        <input id="questionsFile" type="file" accept=".json" />
+        <label class="file-label" for="archetypesFile">Load archetypes.json</label>
+        <input id="archetypesFile" type="file" accept=".json" />
+        <button id="resetBtn" class="warn">Reset answers</button>
+        <button id="exportBtn" class="secondary">Export result JSON</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="stage-tabs">
+        <button class="stage-tab active" data-stage="questionsStage">1. Questionnaire</button>
+        <button class="stage-tab" data-stage="evaluationStage">2. Evaluation</button>
+        <button class="stage-tab" data-stage="exportStage">3. Export</button>
+      </div>
+      <div class="muted small">
+        Expected structure is based on two config files: one for questions and options, one for archetypes with bucket preferences. Embedded defaults are used unless replaced by imported JSON files.
+      </div>
+    </div>
+
+    <div id="questionsStage" class="stage-content">
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Questionnaire</h2>
+          <div id="questionsContainer"></div>
+        </div>
+
+        <div class="panel sticky-panel">
+          <h2>Current run</h2>
+          <div><strong>Answered:</strong> <span id="answeredCount">0</span> / <span id="totalCount">0</span></div>
+          <div class="progress">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+
+          <div class="stats-list">
+            <div class="stat-row">
+              <h3>Score buckets</h3>
+              <div id="liveBucketPills"></div>
+            </div>
+
+            <div class="stat-row">
+              <h3>Completion checks</h3>
+              <div id="completionChecks"></div>
+            </div>
+
+            <div class="stat-row">
+              <h3>Current best fit</h3>
+              <div id="liveBestFit">No result yet.</div>
+            </div>
+          </div>
+
+          <div class="section-divider"></div>
+
+          <div class="controls">
+            <button id="goToEvaluationBtn" class="primary">Evaluate</button>
+            <button id="saveLocalBtn">Save in browser</button>
+            <button id="loadLocalBtn">Load from browser</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="evaluationStage" class="stage-content hidden">
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Bucket scores</h2>
+          <div id="bucketScoresContainer" class="score-list"></div>
+        </div>
+        <div class="panel">
+          <h2>Archetype ranking</h2>
+          <div id="archetypeRankingContainer" class="result-list"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Result summary</h2>
+        <div id="resultSummary"></div>
+      </div>
+    </div>
+
+    <div id="exportStage" class="stage-content hidden">
+      <div class="panel">
+        <h2>Export JSON</h2>
+        <div class="muted">This contains the loaded config references, chosen answers, calculated bucket scores, ranking, and best archetype.</div>
+        <div style="height:10px;"></div>
+        <textarea id="exportOutput" readonly></textarea>
+        <div style="height:10px;"></div>
+        <div class="controls">
+          <button id="copyExportBtn">Copy JSON</button>
+          <button id="downloadExportBtn" class="primary">Download JSON</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const defaultQuestions = {
+      "meta": {
+        "version": "1.0",
+        "title": "Character Motivation Questions",
+        "bucketKeys": ["travel", "cooperate", "danger", "greed", "duty", "curiosity"]
+      },
+      "questions": [
+        {
+          "id": "q01",
+          "category": "Core Drive",
+          "text": "What most often pushes your character to act?",
+          "options": [
+            { "id": "q01o01", "label": "Duty to a cause", "bucketEffects": { "travel": 1, "cooperate": 2, "danger": 1, "greed": -1, "duty": 2, "curiosity": 0 } },
+            { "id": "q01o02", "label": "Hunger for treasure", "bucketEffects": { "travel": 1, "cooperate": -1, "danger": 1, "greed": 2, "duty": -1, "curiosity": 0 } },
+            { "id": "q01o03", "label": "Need to prove yourself", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 2, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q01o04", "label": "Search for hidden truths", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q01o05", "label": "Protecting others", "bucketEffects": { "travel": 1, "cooperate": 2, "danger": 2, "greed": -1, "duty": 1, "curiosity": 0 } },
+            { "id": "q01o06", "label": "Escape from your old life", "bucketEffects": { "travel": 2, "cooperate": 0, "danger": 0, "greed": 0, "duty": -1, "curiosity": 0 } },
+            { "id": "q01o07", "label": "Personal ambition", "bucketEffects": { "travel": 1, "cooperate": -1, "danger": 1, "greed": 1, "duty": 0, "curiosity": 0 } },
+            { "id": "q01o08", "label": "Love of discovery", "bucketEffects": { "travel": 2, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } }
+          ]
+        },
+        {
+          "id": "q02",
+          "category": "Group Role",
+          "text": "Why does your character stay with a group?",
+          "options": [
+            { "id": "q02o01", "label": "Shared mission", "bucketEffects": { "travel": 1, "cooperate": 2, "danger": 1, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q02o02", "label": "Safety in numbers", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": -1, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q02o03", "label": "Useful allies for profit", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 0, "greed": 2, "duty": -1, "curiosity": 0 } },
+            { "id": "q02o04", "label": "Genuine friendship", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 1, "greed": -1, "duty": 0, "curiosity": 0 } },
+            { "id": "q02o05", "label": "Mutual obligation", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 0, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q02o06", "label": "They lead to rare knowledge", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q02o07", "label": "They are a means to an end", "bucketEffects": { "travel": 0, "cooperate": -2, "danger": 0, "greed": 1, "duty": -1, "curiosity": 0 } },
+            { "id": "q02o08", "label": "You owe one of them a debt", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": 1, "greed": 0, "duty": 2, "curiosity": 0 } }
+          ]
+        },
+        {
+          "id": "q03",
+          "category": "Risk",
+          "text": "What makes danger worth facing?",
+          "options": [
+            { "id": "q03o01", "label": "Glory", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 2, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q03o02", "label": "Coin", "bucketEffects": { "travel": 0, "cooperate": -1, "danger": 1, "greed": 2, "duty": -1, "curiosity": 0 } },
+            { "id": "q03o03", "label": "Saving innocent lives", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 2, "greed": -1, "duty": 2, "curiosity": 0 } },
+            { "id": "q03o04", "label": "Ancient secrets", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 1, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q03o05", "label": "No one else will do it", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": 2, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q03o06", "label": "It beats staying still", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 1, "greed": 0, "duty": 0, "curiosity": 1 } },
+            { "id": "q03o07", "label": "Revenge", "bucketEffects": { "travel": 1, "cooperate": -1, "danger": 2, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q03o08", "label": "Faith", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": 2, "greed": -1, "duty": 2, "curiosity": 0 } }
+          ]
+        },
+        {
+          "id": "q04",
+          "category": "Travel",
+          "text": "What makes your character leave home?",
+          "options": [
+            { "id": "q04o01", "label": "A sworn quest", "bucketEffects": { "travel": 2, "cooperate": 1, "danger": 1, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q04o02", "label": "A map to fortune", "bucketEffects": { "travel": 2, "cooperate": 0, "danger": 1, "greed": 2, "duty": -1, "curiosity": 0 } },
+            { "id": "q04o03", "label": "Exile", "bucketEffects": { "travel": 2, "cooperate": 0, "danger": 0, "greed": 0, "duty": -1, "curiosity": 0 } },
+            { "id": "q04o04", "label": "Wanderlust", "bucketEffects": { "travel": 2, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q04o05", "label": "A threat approaching home", "bucketEffects": { "travel": 2, "cooperate": 1, "danger": 2, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q04o06", "label": "A mentor's last instruction", "bucketEffects": { "travel": 2, "cooperate": 0, "danger": 0, "greed": 0, "duty": 2, "curiosity": 1 } },
+            { "id": "q04o07", "label": "A rare artifact rumor", "bucketEffects": { "travel": 2, "cooperate": 0, "danger": 0, "greed": 1, "duty": 0, "curiosity": 2 } },
+            { "id": "q04o08", "label": "Nothing is left for you there", "bucketEffects": { "travel": 2, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 0 } }
+          ]
+        },
+        {
+          "id": "q05",
+          "category": "Trust",
+          "text": "How does your character view companions at first?",
+          "options": [
+            { "id": "q05o01", "label": "Potential comrades", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 1, "greed": 0, "duty": 1, "curiosity": 0 } },
+            { "id": "q05o02", "label": "Temporary partners", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 0, "greed": 1, "duty": 0, "curiosity": 0 } },
+            { "id": "q05o03", "label": "Tools", "bucketEffects": { "travel": 0, "cooperate": -2, "danger": 0, "greed": 1, "duty": -1, "curiosity": 0 } },
+            { "id": "q05o04", "label": "People to protect", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 2, "greed": -1, "duty": 2, "curiosity": 0 } },
+            { "id": "q05o05", "label": "Witnesses to your greatness", "bucketEffects": { "travel": 0, "cooperate": -1, "danger": 1, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q05o06", "label": "People with useful knowledge", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q05o07", "label": "Possible future friends", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 0, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q05o08", "label": "A burden until proven otherwise", "bucketEffects": { "travel": 0, "cooperate": -1, "danger": 0, "greed": 0, "duty": 0, "curiosity": 0 } }
+          ]
+        },
+        {
+          "id": "q06",
+          "category": "Temptation",
+          "text": "What is your character most vulnerable to?",
+          "options": [
+            { "id": "q06o01", "label": "Riches", "bucketEffects": { "travel": 0, "cooperate": -1, "danger": 0, "greed": 2, "duty": -1, "curiosity": 0 } },
+            { "id": "q06o02", "label": "Forbidden knowledge", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 1, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q06o03", "label": "Recognition", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 1, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q06o04", "label": "A chance to help", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 1, "greed": -1, "duty": 2, "curiosity": 0 } },
+            { "id": "q06o05", "label": "Adventure itself", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 1, "greed": 0, "duty": 0, "curiosity": 1 } },
+            { "id": "q06o06", "label": "A call of faith or oath", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": 1, "greed": -1, "duty": 2, "curiosity": 0 } },
+            { "id": "q06o07", "label": "Power", "bucketEffects": { "travel": 0, "cooperate": -1, "danger": 1, "greed": 1, "duty": -1, "curiosity": 0 } },
+            { "id": "q06o08", "label": "Mysteries no one solved", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 1, "greed": 0, "duty": 0, "curiosity": 2 } }
+          ]
+        },
+        {
+          "id": "q07",
+          "category": "Conflict",
+          "text": "When the group disagrees, what does your character do?",
+          "options": [
+            { "id": "q07o01", "label": "Seek compromise", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 0, "greed": 0, "duty": 1, "curiosity": 0 } },
+            { "id": "q07o02", "label": "Push your own plan", "bucketEffects": { "travel": 0, "cooperate": -1, "danger": 0, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q07o03", "label": "Back the strongest option", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 1, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q07o04", "label": "Ask what serves the quest", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": 0, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q07o05", "label": "Ask what reveals the most", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q07o06", "label": "Take the safer road", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": -1, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q07o07", "label": "Take the most rewarding road", "bucketEffects": { "travel": 0, "cooperate": -1, "danger": 1, "greed": 2, "duty": -1, "curiosity": 0 } },
+            { "id": "q07o08", "label": "Stand by your friends first", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 1, "greed": 0, "duty": 1, "curiosity": 0 } }
+          ]
+        },
+        {
+          "id": "q08",
+          "category": "Moral Axis",
+          "text": "What line would your character rarely cross?",
+          "options": [
+            { "id": "q08o01", "label": "Betraying allies", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 1, "greed": -1, "duty": 1, "curiosity": 0 } },
+            { "id": "q08o02", "label": "Abandoning a duty", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": 1, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q08o03", "label": "Leaving a mystery unsolved", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q08o04", "label": "Passing up a fortune", "bucketEffects": { "travel": 0, "cooperate": -1, "danger": 0, "greed": 2, "duty": -1, "curiosity": 0 } },
+            { "id": "q08o05", "label": "Turning away from a worthy battle", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 2, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q08o06", "label": "Letting the innocent suffer", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 2, "greed": -1, "duty": 2, "curiosity": 0 } },
+            { "id": "q08o07", "label": "Breaking your oath", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": 1, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q08o08", "label": "Being controlled by others", "bucketEffects": { "travel": 0, "cooperate": -1, "danger": 1, "greed": 0, "duty": 0, "curiosity": 0 } }
+          ]
+        },
+        {
+          "id": "q09",
+          "category": "Background",
+          "text": "Which background pressure best fits your past?",
+          "options": [
+            { "id": "q09o01", "label": "A family duty", "bucketEffects": { "travel": 1, "cooperate": 1, "danger": 0, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q09o02", "label": "Debt", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 0, "greed": 2, "duty": 0, "curiosity": 0 } },
+            { "id": "q09o03", "label": "Academic obsession", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q09o04", "label": "War or disaster", "bucketEffects": { "travel": 1, "cooperate": 1, "danger": 1, "greed": 0, "duty": 1, "curiosity": 0 } },
+            { "id": "q09o05", "label": "A lost inheritance", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 0, "greed": 2, "duty": 0, "curiosity": 0 } },
+            { "id": "q09o06", "label": "A prophetic sign", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 1, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q09o07", "label": "A vanished mentor", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 0, "greed": 0, "duty": 1, "curiosity": 1 } },
+            { "id": "q09o08", "label": "Boredom with ordinary life", "bucketEffects": { "travel": 2, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 1 } }
+          ]
+        },
+        {
+          "id": "q10",
+          "category": "Reward",
+          "text": "What feels like success to your character?",
+          "options": [
+            { "id": "q10o01", "label": "Mission completed", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": 1, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q10o02", "label": "Wealth secured", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 0, "greed": 2, "duty": -1, "curiosity": 0 } },
+            { "id": "q10o03", "label": "Truth uncovered", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q10o04", "label": "Friends made safe", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 1, "greed": -1, "duty": 1, "curiosity": 0 } },
+            { "id": "q10o05", "label": "Renown", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 1, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q10o06", "label": "A step toward a great oath", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": 1, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q10o07", "label": "Surviving against the odds", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 1, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q10o08", "label": "Reaching a place no one saw before", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } }
+          ]
+        },
+        {
+          "id": "q11",
+          "category": "Leadership",
+          "text": "What kind of leadership does your character respect?",
+          "options": [
+            { "id": "q11o01", "label": "Steady and honorable", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": 0, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q11o02", "label": "Clever and insightful", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q11o03", "label": "Strong and decisive", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 1, "greed": 0, "duty": 0, "curiosity": 0 } },
+            { "id": "q11o04", "label": "Generous and rewarding", "bucketEffects": { "travel": 0, "cooperate": 0, "danger": 0, "greed": 1, "duty": 0, "curiosity": 0 } },
+            { "id": "q11o05", "label": "Protective", "bucketEffects": { "travel": 0, "cooperate": 2, "danger": 1, "greed": 0, "duty": 1, "curiosity": 0 } },
+            { "id": "q11o06", "label": "Devoted to a higher cause", "bucketEffects": { "travel": 0, "cooperate": 1, "danger": 1, "greed": -1, "duty": 2, "curiosity": 0 } },
+            { "id": "q11o07", "label": "Bold and adventurous", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 1, "greed": 0, "duty": 0, "curiosity": 1 } },
+            { "id": "q11o08", "label": "None, you trust yourself", "bucketEffects": { "travel": 0, "cooperate": -1, "danger": 0, "greed": 0, "duty": 0, "curiosity": 0 } }
+          ]
+        },
+        {
+          "id": "q12",
+          "category": "Adventure Hook",
+          "text": "Which hook would pull your character into a campaign fastest?",
+          "options": [
+            { "id": "q12o01", "label": "A village needs defenders", "bucketEffects": { "travel": 1, "cooperate": 2, "danger": 2, "greed": -1, "duty": 2, "curiosity": 0 } },
+            { "id": "q12o02", "label": "A ruin is packed with treasure", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 1, "greed": 2, "duty": -1, "curiosity": 0 } },
+            { "id": "q12o03", "label": "A sealed library has opened", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } },
+            { "id": "q12o04", "label": "A companion asks for help", "bucketEffects": { "travel": 1, "cooperate": 2, "danger": 1, "greed": -1, "duty": 1, "curiosity": 0 } },
+            { "id": "q12o05", "label": "A knightly order calls", "bucketEffects": { "travel": 1, "cooperate": 1, "danger": 1, "greed": 0, "duty": 2, "curiosity": 0 } },
+            { "id": "q12o06", "label": "A rival got there first", "bucketEffects": { "travel": 1, "cooperate": -1, "danger": 1, "greed": 1, "duty": 0, "curiosity": 0 } },
+            { "id": "q12o07", "label": "A supernatural omen appears", "bucketEffects": { "travel": 1, "cooperate": 0, "danger": 1, "greed": 0, "duty": 1, "curiosity": 1 } },
+            { "id": "q12o08", "label": "A lost route beyond the frontier", "bucketEffects": { "travel": 2, "cooperate": 0, "danger": 0, "greed": 0, "duty": 0, "curiosity": 2 } }
+          ]
+        }
+      ]
+    };
+
+    const defaultArchetypes = {
+      "meta": {
+        "version": "1.0",
+        "matchingMethod": "weighted-distance"
+      },
+      "archetypes": [
+        {
+          "id": "guardian",
+          "name": "Guardian",
+          "summary": "Protective, duty-led, group-stable. Best for cooperative parties and heroic campaigns.",
+          "tags": ["protector", "reliable", "heroic"],
+          "idealBuckets": { "travel": 7, "cooperate": 18, "danger": 14, "greed": 0, "duty": 18, "curiosity": 4 },
+          "conditions": {
+            "reasonToTravel": "A quest, threat, oath, or duty compels movement.",
+            "reasonToCooperate": "Protecting allies and pursuing a shared mission matter more than personal gain.",
+            "reasonToFaceDanger": "Danger is acceptable when others depend on you."
+          }
+        },
+        {
+          "id": "seeker",
+          "name": "Seeker",
+          "summary": "Driven by discovery, mystery, and strange frontiers. Best for lore-heavy and exploration-focused games.",
+          "tags": ["curious", "scholar", "explorer"],
+          "idealBuckets": { "travel": 11, "cooperate": 6, "danger": 8, "greed": 2, "duty": 5, "curiosity": 20 },
+          "conditions": {
+            "reasonToTravel": "The unknown calls, lost places and hidden truths must be found.",
+            "reasonToCooperate": "Others open doors to knowledge and access.",
+            "reasonToFaceDanger": "A dangerous mystery is still a mystery worth solving."
+          }
+        },
+        {
+          "id": "blade",
+          "name": "Blade for Hire",
+          "summary": "Risk-tolerant, practical, reward-motivated. Best for gritty adventures, mercenary groups, and morally mixed campaigns.",
+          "tags": ["mercenary", "ambitious", "survivor"],
+          "idealBuckets": { "travel": 9, "cooperate": 4, "danger": 13, "greed": 18, "duty": 2, "curiosity": 3 },
+          "conditions": {
+            "reasonToTravel": "Opportunity lies elsewhere, usually with danger and reward attached.",
+            "reasonToCooperate": "A team improves odds, profit, and survival.",
+            "reasonToFaceDanger": "Danger is part of the price of success."
+          }
+        },
+        {
+          "id": "champion",
+          "name": "Champion",
+          "summary": "Courageous, committed, and active in the face of threats. Best for action-heavy campaigns and direct group play.",
+          "tags": ["bold", "heroic", "frontline"],
+          "idealBuckets": { "travel": 8, "cooperate": 11, "danger": 19, "greed": 1, "duty": 10, "curiosity": 3 },
+          "conditions": {
+            "reasonToTravel": "The next worthy struggle is elsewhere.",
+            "reasonToCooperate": "Strong allies make great deeds possible.",
+            "reasonToFaceDanger": "Danger is where meaning, honor, or victory is found."
+          }
+        }
+      ]
+    };
+
+    let appData = {
+      questionsData: $.extend(true, {}, defaultQuestions),
+      archetypesData: $.extend(true, {}, defaultArchetypes),
+      selectedAnswers: {},
+      lastEvaluation: null,
+      importedFiles: {
+        questions: null,
+        archetypes: null
+      }
+    };
+
+    function deepClone(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    function getBucketKeys() {
+      return appData.questionsData.meta.bucketKeys || [];
+    }
+
+    function getQuestions() {
+      return appData.questionsData.questions || [];
+    }
+
+    function getArchetypes() {
+      return appData.archetypesData.archetypes || [];
+    }
+
+    function resetAnswers() {
+      appData.selectedAnswers = {};
+      appData.lastEvaluation = null;
+      renderAll();
+    }
+
+    function selectOption(questionId, optionId) {
+      appData.selectedAnswers[questionId] = optionId;
+      appData.lastEvaluation = null;
+      renderAll(false);
+    }
+
+    function getSelectedOption(question) {
+      const optionId = appData.selectedAnswers[question.id];
+      if (!optionId) return null;
+      return (question.options || []).find(opt => opt.id === optionId) || null;
+    }
+
+    function calculateBucketScores() {
+      const scores = {};
+      getBucketKeys().forEach(k => { scores[k] = 0; });
+
+      getQuestions().forEach(question => {
+        const selected = getSelectedOption(question);
+        if (!selected) return;
+        const effects = selected.bucketEffects || {};
+        getBucketKeys().forEach(k => {
+          scores[k] += Number(effects[k] || 0);
+        });
+      });
+
+      return scores;
+    }
+
+    function evaluateArchetypes(bucketScores) {
+      const archetypes = getArchetypes();
+
+      const results = archetypes.map(arch => {
+        const target = arch.idealBuckets || {};
+        let distance = 0;
+        let overlap = 0;
+
+        getBucketKeys().forEach(k => {
+          const actual = Number(bucketScores[k] || 0);
+          const ideal = Number(target[k] || 0);
+          distance += Math.abs(ideal - actual);
+          overlap += Math.min(actual, ideal);
+        });
+
+        return {
+          id: arch.id,
+          name: arch.name,
+          summary: arch.summary,
+          tags: arch.tags || [],
+          conditions: arch.conditions || {},
+          idealBuckets: target,
+          distance: distance,
+          overlap: overlap,
+          fitScore: Math.max(0, 100 - distance * 3)
+        };
+      });
+
+      results.sort((a, b) => {
+        if (b.fitScore !== a.fitScore) return b.fitScore - a.fitScore;
+        return b.overlap - a.overlap;
+      });
+
+      return results;
+    }
+
+    function runEvaluation() {
+      const bucketScores = calculateBucketScores();
+      const ranking = evaluateArchetypes(bucketScores);
+      const bestFit = ranking.length ? ranking[0] : null;
+
+      appData.lastEvaluation = {
+        bucketScores,
+        ranking,
+        bestFit
+      };
+
+      return appData.lastEvaluation;
+    }
+
+    function ensureEvaluation() {
+      if (!appData.lastEvaluation) {
+        runEvaluation();
+      }
+      return appData.lastEvaluation;
+    }
+
+    function getAnsweredCount() {
+      return Object.keys(appData.selectedAnswers).length;
+    }
+
+    function getTotalCount() {
+      return getQuestions().length;
+    }
+
+    function maxPossibleBucketScores() {
+      const maxScores = {};
+      getBucketKeys().forEach(k => { maxScores[k] = 0; });
+
+      getQuestions().forEach(question => {
+        getBucketKeys().forEach(k => {
+          let maxVal = 0;
+          (question.options || []).forEach(opt => {
+            const v = Number((opt.bucketEffects || {})[k] || 0);
+            if (v > maxVal) maxVal = v;
+          });
+          maxScores[k] += maxVal;
+        });
+      });
+
+      return maxScores;
+    }
+
+    function renderQuestions() {
+      const $container = $("#questionsContainer");
+      $container.empty();
+
+      const questions = getQuestions();
+
+      questions.forEach((question, index) => {
+        const selectedId = appData.selectedAnswers[question.id];
+
+        const $card = $(`
+          <div class="question-card">
+            <div class="question-meta">${question.category || "Question"} · ${index + 1}</div>
+            <div class="question-text">${escapeHtml(question.text)}</div>
+            <div class="options-grid"></div>
+          </div>
+        `);
+
+        const $grid = $card.find(".options-grid");
+
+        (question.options || []).forEach(option => {
+          const selectedClass = selectedId === option.id ? "selected" : "";
+          const effectSummary = summarizeEffects(option.bucketEffects || {});
+
+          const $btn = $(`
+            <button class="option-btn ${selectedClass}" data-question-id="${question.id}" data-option-id="${option.id}">
+              <div class="option-title">${escapeHtml(option.label)}</div>
+              <div class="option-note">${escapeHtml(effectSummary)}</div>
+            </button>
+          `);
+
+          $grid.append($btn);
+        });
+
+        $container.append($card);
+      });
+    }
+
+    function summarizeEffects(effects) {
+      const entries = [];
+      Object.keys(effects).forEach(key => {
+        const val = Number(effects[key] || 0);
+        if (val !== 0) {
+          const sign = val > 0 ? "+" : "";
+          entries.push(`${key}: ${sign}${val}`);
+        }
+      });
+      return entries.length ? entries.join(", ") : "No score effect";
+    }
+
+    function renderSidebar() {
+      const answered = getAnsweredCount();
+      const total = getTotalCount();
+      const pct = total ? Math.round((answered / total) * 100) : 0;
+      $("#answeredCount").text(answered);
+      $("#totalCount").text(total);
+      $("#progressFill").css("width", pct + "%");
+
+      const liveScores = calculateBucketScores();
+      const $pills = $("#liveBucketPills");
+      $pills.empty();
+
+      getBucketKeys().forEach(key => {
+        $pills.append(`<span class="pill">${escapeHtml(key)}: ${liveScores[key]}</span>`);
+      });
+
+      const checks = [
+        { label: "Reason to travel present", value: liveScores.travel > 0 },
+        { label: "Reason to cooperate present", value: liveScores.cooperate > 0 },
+        { label: "Reason to face danger present", value: liveScores.danger > 0 },
+        { label: "All questions answered", value: answered === total }
+      ];
+
+      const $checks = $("#completionChecks");
+      $checks.empty();
+      checks.forEach(check => {
+        $checks.append(`
+          <div class="${check.value ? 'good-text' : 'danger-text'}">
+            ${check.value ? "✓" : "✗"} ${escapeHtml(check.label)}
+          </div>
+        `);
+      });
+
+      const evaluation = ensureEvaluation();
+      if (evaluation.bestFit) {
+        const best = evaluation.bestFit;
+        $("#liveBestFit").html(`
+          <div><span class="highlight">${escapeHtml(best.name)}</span> (${best.fitScore} fit)</div>
+          <div class="muted small">${escapeHtml(best.summary || "")}</div>
+        `);
+      } else {
+        $("#liveBestFit").text("No result yet.");
+      }
+    }
+
+    function renderEvaluation() {
+      const evaluation = ensureEvaluation();
+      const bucketScores = evaluation.bucketScores;
+      const ranking = evaluation.ranking;
+      const maxScores = maxPossibleBucketScores();
+
+      const $bucket = $("#bucketScoresContainer");
+      $bucket.empty();
+
+      getBucketKeys().forEach(key => {
+        const value = Number(bucketScores[key] || 0);
+        const maxValue = Math.max(1, Number(maxScores[key] || 1));
+        const percent = Math.max(0, Math.min(100, Math.round((value / maxValue) * 100)));
+
+        const $row = $(`
+          <div class="score-row">
+            <div class="score-header">
+              <strong>${escapeHtml(key)}</strong>
+              <span>${value} / ${maxValue}</span>
+            </div>
+            <div class="mini-bar">
+              <div class="mini-bar-fill" style="width:${percent}%"></div>
+            </div>
+          </div>
+        `);
+
+        $bucket.append($row);
+      });
+
+      const $ranking = $("#archetypeRankingContainer");
+      $ranking.empty();
+
+      ranking.forEach((item, idx) => {
+        const tags = (item.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
+        const $row = $(`
+          <div class="result-row">
+            <div class="result-header">
+              <div>
+                <strong>${idx + 1}. ${escapeHtml(item.name)}</strong>
+                <div class="muted small">${escapeHtml(item.summary || "")}</div>
+              </div>
+              <div><strong>${item.fitScore}</strong> fit</div>
+            </div>
+            <div>${tags}</div>
+            <div class="muted small" style="margin-top:8px;">Distance to ideal: ${item.distance}, overlap: ${item.overlap}</div>
+          </div>
+        `);
+        $ranking.append($row);
+      });
+
+      const best = evaluation.bestFit;
+      const answered = getAnsweredCount();
+      const total = getTotalCount();
+
+      $("#resultSummary").html(best ? `
+        <h3>${escapeHtml(best.name)}</h3>
+        <p>${escapeHtml(best.summary || "")}</p>
+        <div>
+          <strong>Reason to travel:</strong> ${escapeHtml((best.conditions || {}).reasonToTravel || "-")}
+        </div>
+        <div>
+          <strong>Reason to cooperate:</strong> ${escapeHtml((best.conditions || {}).reasonToCooperate || "-")}
+        </div>
+        <div>
+          <strong>Reason to face danger:</strong> ${escapeHtml((best.conditions || {}).reasonToFaceDanger || "-")}
+        </div>
+        <div style="height:10px;"></div>
+        <div class="muted">Answered ${answered} of ${total} questions.</div>
+      ` : `<div>No archetype result available.</div>`);
+    }
+
+    function buildExportPayload() {
+      const evaluation = ensureEvaluation();
+
+      const answersDetailed = getQuestions().map(question => {
+        const selectedOption = getSelectedOption(question);
+        return {
+          questionId: question.id,
+          category: question.category || null,
+          questionText: question.text,
+          selectedOptionId: selectedOption ? selectedOption.id : null,
+          selectedOptionLabel: selectedOption ? selectedOption.label : null,
+          bucketEffects: selectedOption ? (selectedOption.bucketEffects || {}) : null
+        };
+      });
+
+      return {
+        exportMeta: {
+          exportedAt: new Date().toISOString(),
+          app: "dnd-character-logic-tester",
+          version: "1.0"
+        },
+        sourceMeta: {
+          questionsVersion: (appData.questionsData.meta || {}).version || null,
+          archetypesVersion: (appData.archetypesData.meta || {}).version || null,
+          importedFiles: appData.importedFiles
+        },
+        selectedAnswersRaw: deepClone(appData.selectedAnswers),
+        answersDetailed: answersDetailed,
+        bucketScores: deepClone(evaluation.bucketScores),
+        ranking: deepClone(evaluation.ranking),
+        bestFit: deepClone(evaluation.bestFit)
+      };
+    }
+
+    function renderExport() {
+      const payload = buildExportPayload();
+      $("#exportOutput").val(JSON.stringify(payload, null, 2));
+    }
+
+    function renderAll(renderEval = true) {
+      renderQuestions();
+      renderSidebar();
+      if (renderEval) {
+        renderEvaluation();
+        renderExport();
+      } else {
+        renderExport();
+      }
+    }
+
+    function switchStage(stageId) {
+      $(".stage-content").addClass("hidden");
+      $("#" + stageId).removeClass("hidden");
+      $(".stage-tab").removeClass("active");
+      $(`.stage-tab[data-stage="${stageId}"]`).addClass("active");
+
+      if (stageId === "evaluationStage") {
+        runEvaluation();
+        renderEvaluation();
+      }
+
+      if (stageId === "exportStage") {
+        renderExport();
+      }
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function loadJsonFile(file, onSuccess, onError) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const json = JSON.parse(e.target.result);
+          onSuccess(json);
+        } catch (err) {
+          if (onError) onError(err);
+        }
+      };
+      reader.onerror = function(err) {
+        if (onError) onError(err);
+      };
+      reader.readAsText(file);
+    }
+
+    function validateQuestionsData(data) {
+      return data && data.questions && Array.isArray(data.questions) && data.meta && Array.isArray(data.meta.bucketKeys);
+    }
+
+    function validateArchetypesData(data) {
+      return data && data.archetypes && Array.isArray(data.archetypes);
+    }
+
+    function saveToLocal() {
+      const payload = {
+        appData: {
+          questionsData: appData.questionsData,
+          archetypesData: appData.archetypesData,
+          selectedAnswers: appData.selectedAnswers,
+          importedFiles: appData.importedFiles
+        }
+      };
+      localStorage.setItem("dndLogicTesterState", JSON.stringify(payload));
+      alert("Saved in browser localStorage.");
+    }
+
+    function loadFromLocal() {
+      const raw = localStorage.getItem("dndLogicTesterState");
+      if (!raw) {
+        alert("No saved state found.");
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.appData) {
+          appData.questionsData = parsed.appData.questionsData || deepClone(defaultQuestions);
+          appData.archetypesData = parsed.appData.archetypesData || deepClone(defaultArchetypes);
+          appData.selectedAnswers = parsed.appData.selectedAnswers || {};
+          appData.importedFiles = parsed.appData.importedFiles || { questions: null, archetypes: null };
+          appData.lastEvaluation = null;
+          renderAll();
+          alert("Loaded saved state.");
+        }
+      } catch (e) {
+        alert("Failed to load saved state.");
+      }
+    }
+
+    function downloadJson(filename, contentObj) {
+      const dataStr = JSON.stringify(contentObj, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    $(document).ready(function() {
+      renderAll();
+
+      $(document).on("click", ".option-btn", function() {
+        const questionId = $(this).data("question-id");
+        const optionId = $(this).data("option-id");
+        selectOption(questionId, optionId);
+      });
+
+      $(".stage-tab").on("click", function() {
+        switchStage($(this).data("stage"));
+      });
+
+      $("#goToEvaluationBtn").on("click", function() {
+        runEvaluation();
+        renderEvaluation();
+        renderExport();
+        switchStage("evaluationStage");
+      });
+
+      $("#resetBtn").on("click", function() {
+        if (confirm("Reset all answers?")) {
+          resetAnswers();
+        }
+      });
+
+      $("#saveLocalBtn").on("click", function() {
+        saveToLocal();
+      });
+
+      $("#loadLocalBtn").on("click", function() {
+        loadFromLocal();
+      });
+
+      $("#exportBtn").on("click", function() {
+        renderExport();
+        switchStage("exportStage");
+      });
+
+      $("#copyExportBtn").on("click", async function() {
+        const text = $("#exportOutput").val();
+        try {
+          await navigator.clipboard.writeText(text);
+          alert("Export JSON copied.");
+        } catch (e) {
+          alert("Copy failed. Manual copy needed.");
+        }
+      });
+
+      $("#downloadExportBtn").on("click", function() {
+        const payload = buildExportPayload();
+        downloadJson("dnd_character_result.json", payload);
+      });
+
+      $("#questionsFile").on("change", function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        loadJsonFile(file, function(json) {
+          if (!validateQuestionsData(json)) {
+            alert("Invalid questions.json format.");
+            return;
+          }
+          appData.questionsData = json;
+          appData.importedFiles.questions = file.name;
+          appData.selectedAnswers = {};
+          appData.lastEvaluation = null;
+          renderAll();
+          alert("questions.json loaded.");
+        }, function() {
+          alert("Failed to parse questions.json.");
+        });
+      });
+
+      $("#archetypesFile").on("change", function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        loadJsonFile(file, function(json) {
+          if (!validateArchetypesData(json)) {
+            alert("Invalid archetypes.json format.");
+            return;
+          }
+          appData.archetypesData = json;
+          appData.importedFiles.archetypes = file.name;
+          appData.lastEvaluation = null;
+          renderAll();
+          alert("archetypes.json loaded.");
+        }, function() {
+          alert("Failed to parse archetypes.json.");
+        });
+      });
+    });
+  </script>
+</body>
+</html>
