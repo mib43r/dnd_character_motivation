@@ -342,6 +342,11 @@
       </div>
     </div>
 
+    <div class="panel" id="bucketListPanel">
+      <h2>Bucket keys</h2>
+      <div id="bucketList" class="muted"></div>
+    </div>
+
     <div class="panel">
       <div class="stage-tabs">
         <button class="stage-tab active" data-stage="questionsStage">1. Questionnaire</button>
@@ -695,6 +700,21 @@
       return appData.questionsData.meta.bucketKeys || [];
     }
 
+    function renderBucketList() {
+      const $bucketList = $("#bucketList");
+      $bucketList.empty();
+      const keys = getBucketKeys();
+      if (!keys.length) {
+        $bucketList.text("No bucket keys found in configuration.");
+        return;
+      }
+      const $ul = $("<ul></ul>");
+      keys.forEach(key => {
+        $ul.append(`<li>${escapeHtml(key)}</li>`);
+      });
+      $bucketList.append($ul);
+    }
+
     function getQuestions() {
       return appData.questionsData.questions || [];
     }
@@ -1025,6 +1045,7 @@
     }
 
     function renderAll(renderEval = true) {
+      renderBucketList();
       renderQuestions();
       renderSidebar();
       if (renderEval) {
